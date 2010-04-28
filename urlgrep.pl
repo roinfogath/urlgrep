@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 #####################################
-# URLgrep v0.4                      #
-# by x0rz <hourto_c@epita.fr        #
+# URLgrep v0.41                     #
+# by x0rz <hourto_c@epita.fr>       #
 #                                   #
 # http://code.google.com/p/urlgrep/ #
 #####################################
@@ -42,6 +42,7 @@ my $help = 0;
 my $output = "";
 my $casei = 0;
 my $all = 0;
+my $timeout = 5;
 
 
 GetOptions ('verbose' => \$verbose,
@@ -51,14 +52,16 @@ GetOptions ('verbose' => \$verbose,
 	    'insensitive' => \$casei,
 	    'output=s' => \$output,
 	    'help' => \$help,
-	    'all' => \$all);
+	    'all' => \$all,
+	    'timeout=i' => \$timeout);
 
-
+$ua->timeout($timeout);
+$ua->agent('Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.6; fr; rv:1.9.2.3) Gecko/20100401 Firefox/3.6.3');
 
 if ($help != 0)
 {
-    print_comm ("URLgrep v0.4\n");
-    print_comm ("by x0rz <hourto_c@epita.fr\n");
+    print_comm ("URLgrep v0.41\n");
+    print_comm ("by x0rz <hourto_c@epita.fr>\n");
     print_comm ("http://code.google.com/p/urlgrep/\n");
     print_comm ("\n");
     print_comm ("usage: ./urlgrep.pl -u URL [-r -i -d -a -o -v -h]\n");
@@ -73,14 +76,7 @@ if ($entry_url eq "")
 
 
 # Calculating host
-my $host = substr($entry_url, 0, index($entry_url, "/", 7) + 1);
-
-# in case the given page does not finish with a '/'
-if (index($host, "/", 7) == -1)
-{
-    $host .= "/";
-}
-
+my $host = find_hostname($entry_url);
 
 print_comm ("Running URLgrep on " . $entry_url ."\n");
 print_comm ("Regexp: /".$regexp."/".($casei? "i" : "")."\n");
@@ -98,6 +94,22 @@ if ($verbose == 0)
 
 finishing();
 
+# return domain
+sub find_hostname
+{
+    my $url = $_[0];
+    $url =~ s!^https?://(?:www\.)?!!i;
+    $url =~ s!/.*!!;
+    $url =~ s/[\?\#\:].*//;
+    
+    return $url;
+}
+
+# return domain and sub-domains
+sub find_wwwhost
+{
+    return (URI->new($_[0])->host);
+}
 
 sub finishing
 {
@@ -260,7 +272,7 @@ sub constructURL
     # Testing if link is absolute
     if ((index($_[0], "http://") != -1) || (index($_[0], "https://") != -1))
     {
-	# if we want all link (not only local to the website)
+	# if we want to go through all the links (not only local to the website)
 	if ($all)
 	{
 	    $newURL = $_[0];
@@ -268,7 +280,7 @@ sub constructURL
 	else
 	{
 	    # Calculating host of the link
-            my $link_host = substr($_[0], 0, index($_[0], "/", 7) + 1);
+	    my $link_host = find_hostname($_[0]);
 
 	    if ($link_host eq $host)
 	    {
@@ -292,7 +304,7 @@ sub constructURL
 	else
 	{
 	    # Need the root URL
-	    $newURL = $host;
+	    $newURL = "http://".find_wwwhost($_[1]);
 	}
 
 	# We need to remove the last '/' of the host
@@ -311,7 +323,7 @@ sub constructURL
             }
             else
             {
-                $newURL = $newURL . $_[0];
+                $newURL = "http://" . find_wwwhost($_[1]) . '/' . substr($_[0],1);
             }
         }
         else
