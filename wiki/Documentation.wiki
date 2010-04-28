@@ -20,7 +20,10 @@ Below are the currently supported options:
    ** Case insensitive search.
 
   * _--output file_
-   ** will dump all URL into the specified _file_.
+   ** will dump all matching URLs into the specified _file_.
+
+  * _--timeout n_
+   ** set the timeout when requesting a page (default=5 seconds).
 
   * _--help_ 
    ** show the help and usage.
