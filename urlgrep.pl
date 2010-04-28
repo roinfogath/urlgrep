@@ -12,9 +12,6 @@ use HTML::LinkExtor;
 use Term::ANSIColor;
 use Getopt::Long;
 
-$ua->timeout(5);
-$ua->agent('Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.6; fr; rv:1.9.2.3) Gecko/20100401 Firefox/3.6.3');
-
 # Catching Ctrl-C
 $SIG{INT} = \&tsktsk;
 
