@@ -4,14 +4,20 @@
 = Options =
 
 Below are the currently supported options:
-  * _--url_
+  * _--url link_
    ** url of the target website (default=http://localhost/).
 
-  * _--depth_
+  * _--depth n_
    ** depth of the search (default=1).
 
-  * _--regexp_
+  * _--regexp reg_
    ** the regular expression you want to apply (see example below).
+
+  * _--insensitive_
+   ** Case insensitive search.
+
+  * _--output file_
+   ** will dump all URL into the specified _file_.
 
   * _--help_ 
    ** show the help and usage.
@@ -32,3 +38,8 @@ This will search for any URL in the website www.epita.fr containing a '?'.
 ./urlgrep.pl -u "http://www.epita.fr" -r "\.php" -d 2
 }}}
 Using short options, this will search PHP pages in the website www.epita.fr.
+
+{{{
+./urlgrep.pl -u "http://www.epita.fr" -d 1 -r "pHp" -i -v -o test.log
+}}}
+Will dump the results in _test.log_.
