@@ -1,1 +1,23 @@
-Todo...
+Options
+
+Below are the currently supported options:
+
+--url
+url of the target website (default=http://localhost/).
+--depth
+depth of the search (default=1).
+--regexp
+the regular expression you want to apply (see example below).
+--help
+show the help and usage.
+--verbose
+verbose mode.
+
+
+Examples
+
+./urlgrep.pl --url="http://www.epita.fr/" --regexp="\?" -d 1 -v
+This will search for any URL in the website www.epita.fr containing a '?'.
+
+./urlgrep.pl -u "http://www.epita.fr" -r "\.php" -d 2
+Using short options, this will search PHP pages in the website www.epita.fr.

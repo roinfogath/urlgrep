@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #####################################
-# URLgrep v0.2                      #
+# URLgrep v0.3                      #
 # by x0rz <hourto_c@epita.fr        #
 #                                   #
 # http://code.google.com/p/urlgrep/ #
@@ -11,8 +11,6 @@ use LWP::Simple qw($ua get);;
 use HTML::LinkExtor;
 use Term::ANSIColor;
 use Getopt::Long;
-
-use Data::Dumper;
 
 $ua->timeout(5);
 $ua->agent('Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.6; fr; rv:1.9.2.3) Gecko/20100401 Firefox/3.6.3');
@@ -38,19 +36,22 @@ my $total_links = 0;
 #
 my $host = "http://localhost/";
 my $depth = 1;
-my $regexp = "";
+my $regexp = "^.*\$";
 my $verbose = 0;
 my $help = 0;
+my $output = "";
+my $casei = 0;
 
 GetOptions ('verbose' => \$verbose,
 	    'depth=i' => \$depth,
 	    'url=s' => \$host,
 	    'regexp=s' => \$regexp,
-	    'help' => \$help);
+	    'insensitive' => \$casei,
+	    'output=s' => \$output);
 
 if ($help != 0)
 {
-    print_comm ("URLgrep v0.2\n");
+    print_comm ("URLgrep v0.3\n");
     print_comm ("by x0rz <hourto_c@epita.fr\n");
     print_comm ("http://code.google.com/p/urlgrep/\n");
     print_comm ("\n");
@@ -64,7 +65,7 @@ if ($host eq "")
     exit 1;
 }
 
-print_comm ("Running URLgrep on " . $host ."\n");
+print_comm ("Running URLgrep on " . $host ." with /".$regexp."/".($casei? "i" : "")."\n");
 print_comm ("Started on ".gmtime()." \n");
 
 #
@@ -101,14 +102,34 @@ sub finishing
     else
     {
 	print_ok();
-
 	print color 'red';
-	print scalar(@targets_u)." URL(s) found matching /".$regexp."/.\n";
+	print scalar(@targets_u)." URL(s) found matching /".$regexp."/".($casei? "i" : "")."\n";
 	foreach $link (@targets_u)
 	{
 	    print_info();
 	    print $link."\n";
 	}
+
+	if ($output ne "")
+	{
+	    print_comm ("Generating output...\n");
+	    if (!open FILE, ">", $output)
+	    {
+		print_ko();
+		print "Couldn't create file.\n";
+	    }
+	    else
+	    {
+		foreach $link (@targets_u)
+		{
+		    print FILE $link."\n";
+		}
+		print_ok();
+		print "URLs correctly written in " .$output. "\n";
+	    }
+
+	}
+
     }
 }
 
@@ -131,6 +152,7 @@ sub parseURL
     my $content = get($_[0]);
     if (!defined $content)
     {
+	print("\n");
 	print_ko();
 	print "Could't reach the page.\n";
     }
@@ -148,9 +170,22 @@ sub parseURL
 	push @links, constructURL($link->[2], $_[0]);
     }
 
-    my @links = grep(!/.*\.(gif|jpe?g|png|css|js|ico|swf|axd|jsp|pdf)$/, @links);
+    # removing images and other special files
+    @links = grep(!/.*\.(gif|jpe?g|png|css|js|ico|swf|axd|jsp|pdf)$/, @links);
 
-    my @grep = grep(/$regexp/, @links);
+    # removing javascript, mailto, FTP links and anchors links
+    @links = grep(!/^(#|ftp:|mailto:|javascript:).*/, @links);
+
+    # Targets matching the given regexp
+    my @grep;
+    if ($casei)
+    {
+	@grep = grep(/$regexp/i, @links);
+    }
+    else
+    {
+	@grep = grep(/$regexp/, @links);
+    }
     @targets = (@targets, @grep);
 
     if ($verbose == 1)
@@ -190,31 +225,67 @@ sub parseURL
 
 sub constructURL
 {
-    my $newURL = $host;
+    my $newURL;
 
-    if ((index($_[0], "http://") == -1) && (index($_[0], "https://") == -1))
+    # 0 = link
+    # 1 = page
+
+    # Testing if link is absolute
+    if ((index($_[0], "http://") != -1) || (index($_[0], "https://") != -1))
     {
-	if (substr($newURL, -1, 1) eq "/")
+	$newURL = $_[0];
+    }
+    else
+    {
+	# Construct directory URL
+	if (substr($_[1], 0, 1) ne "/")
 	{
-	    chop($newURL);
-	}
-
-	
-
-	if ($_[0][0] eq '/')
-	{
-	    $newURL = $newURL . $_[0];
+	    # Relative URL
+	    $newURL = substr($_[1], 0, rindex($_[1], "/"));
 	}
 	else
 	{
-	    $newURL = $newURL . '/' . $_[0];
+	    # Need the root URL
+	    $newURL = substr($_[1], 0, index($_[1], "/", 8));
 	}
 
-	if (substr($_[0], 1, 2) eq "./")
-	{
-	    
-	}
+	# We need to remove the last '/' of the host
+        if (substr($newURL, -1, 1) eq "/")
+        {
+            chop($newURL);
+        }
+
+        # href link begins with '/'
+        if (substr($_[0], 0, 1) eq "/")
+        {
+            # href link begins with "//"
+            if (substr($_[0], 0, 2) eq "//")
+            {
+                $newURL = "http://" . substr($_[0], 2, length($_[0] - 2));
+            }
+            else
+            {
+                $newURL = $newURL . $_[0];
+            }
+        }
+        else
+        {
+            # href link begins with "./"
+            if (substr($_[0], 0, 2) eq "./")
+            {
+                $newURL = $newURL . '/' . substr($_[0], 2, length($_[0] - 2));
+            }
+            else
+            {
+                $newURL = $newURL . '/' . $_[0];
+            }
+        }
     }
+
+    
+    #print ("0  " . $_[0]."\n");
+    #print ("1  " .$_[1]."\n");
+    #print("==> " . $newURL."\n");
 
     return ($newURL);
 }
