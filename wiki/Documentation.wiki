@@ -10,6 +10,9 @@ Below are the currently supported options:
   * _--depth n_
    ** depth of the search (default=1).
 
+  * _--all_
+   ** specify this option if you want to search in pages that link outside.
+
   * _--regexp reg_
    ** the regular expression you want to apply (see example below).
 
