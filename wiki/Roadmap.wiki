@@ -1,0 +1,16 @@
+#summary What to do?
+#labels Featured,Phase-Design
+
+
+==v1.0==
+
+TODO list:
+  * HTTPS support
+  * Cleaning the code...
+
+
+==v2.0==
+
+TODO list:
+  * Cookie support
+  * Stealth mode?
