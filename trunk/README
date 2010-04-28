@@ -1,3 +1,9 @@
+URLgrep v0.4.1
+##############
+
+Please visit http://code.google.com/p/urlgrep/
+
+
 Below are the currently supported options:
 
 --url link
@@ -11,7 +17,9 @@ the regular expression you want to apply (see example below).
 --insensitive
 Case insensitive search.
 --output file
-will dump all URL into the specified file.
+will dump all matching URLs into the specified file.
+--timeout n
+set the timeout when requesting a page (default=5 seconds).
 --help
 show the help and usage.
 --verbose
