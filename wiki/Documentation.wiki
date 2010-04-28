@@ -5,7 +5,7 @@
 
 Below are the currently supported options:
   * _--url link_
-   ** url of the target website (default=http://localhost/).
+   ** url of the target webpage.
 
   * _--depth n_
    ** depth of the search (default=1).
