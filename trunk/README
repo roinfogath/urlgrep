@@ -1,19 +1,21 @@
-Options
-
 Below are the currently supported options:
 
---url
-url of the target website (default=http://localhost/).
---depth
+--url link
+url of the target webpage.
+--depth n
 depth of the search (default=1).
---regexp
+--all
+specify this option if you want to search in pages that link outside.
+--regexp reg
 the regular expression you want to apply (see example below).
+--insensitive
+Case insensitive search.
+--output file
+will dump all URL into the specified file.
 --help
 show the help and usage.
 --verbose
 verbose mode.
-
-
 Examples
 
 ./urlgrep.pl --url="http://www.epita.fr/" --regexp="\?" -d 1 -v
@@ -21,3 +23,6 @@ This will search for any URL in the website www.epita.fr containing a '?'.
 
 ./urlgrep.pl -u "http://www.epita.fr" -r "\.php" -d 2
 Using short options, this will search PHP pages in the website www.epita.fr.
+
+./urlgrep.pl -u "http://www.epita.fr" -d 1 -r "pHp" -i -v -o test.log
+Will dump the results in test.log.
