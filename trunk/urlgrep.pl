@@ -64,13 +64,13 @@ if ($help != 0)
     print_comm ("by x0rz <hourto_c@epita.fr>\n");
     print_comm ("http://code.google.com/p/urlgrep/\n");
     print_comm ("\n");
-    print_comm ("usage: ./urlgrep.pl -u URL [-r -i -d -a -o -v -h]\n");
+    print_comm ("usage: ./urlgrep.pl -u URL [-r -i -d -a -o -t -v -h]\n");
     exit 0;
 }
 
 if ($entry_url eq "")
 {
-    print_comm ("usage: ./urlgrep.pl -u URL [-r -i -d -a -o -v -h]\n");
+    print_comm ("usage: ./urlgrep.pl -u URL [-r -i -d -a -o -t -v -h]\n");
     exit 1;
 }
 
