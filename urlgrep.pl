@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #####################################
-# URLgrep v0.3                      #
+# URLgrep v0.4                      #
 # by x0rz <hourto_c@epita.fr        #
 #                                   #
 # http://code.google.com/p/urlgrep/ #
@@ -34,44 +34,62 @@ my $total_links = 0;
 #
 # 1. Options
 #
-my $host = "http://localhost/";
+my $entry_url = "";
 my $depth = 1;
 my $regexp = "^.*\$";
 my $verbose = 0;
 my $help = 0;
 my $output = "";
 my $casei = 0;
+my $all = 0;
+
 
 GetOptions ('verbose' => \$verbose,
 	    'depth=i' => \$depth,
-	    'url=s' => \$host,
+	    'url=s' => \$entry_url,
 	    'regexp=s' => \$regexp,
 	    'insensitive' => \$casei,
-	    'output=s' => \$output);
+	    'output=s' => \$output,
+	    'help' => \$help,
+	    'all' => \$all);
+
+
 
 if ($help != 0)
 {
-    print_comm ("URLgrep v0.3\n");
+    print_comm ("URLgrep v0.4\n");
     print_comm ("by x0rz <hourto_c@epita.fr\n");
     print_comm ("http://code.google.com/p/urlgrep/\n");
     print_comm ("\n");
-    print_comm ("usage: ./urlgrep.pl --url=URL [--depth=D --verbose --regexp=REG]\n");
+    print_comm ("usage: ./urlgrep.pl -u URL [-r -i -d -a -o -v -h]\n");
     exit 0;
 }
 
-if ($host eq "")
+if ($entry_url eq "")
 {
-    print_comm ("usage: ./urlgrep.pl --url=URL [--depth=D --verbose --regexp=REG]\n");
+    print_comm ("usage: ./urlgrep.pl -u URL [-r -i -d -a -o -v -h]\n");
     exit 1;
 }
 
-print_comm ("Running URLgrep on " . $host ." with /".$regexp."/".($casei? "i" : "")."\n");
+
+# Calculating host
+my $host = substr($entry_url, 0, index($entry_url, "/", 7) + 1);
+
+# in case the given page does not finish with a '/'
+if (index($host, "/", 7) == -1)
+{
+    $host .= "/";
+}
+
+
+print_comm ("Running URLgrep on " . $entry_url ."\n");
+print_comm ("Regexp: /".$regexp."/".($casei? "i" : "")."\n");
 print_comm ("Started on ".gmtime()." \n");
 
 #
 # 2. Call first root URL
 #
-parseURL($host, 0);
+parseURL($entry_url, 0);
 
 if ($verbose == 0)
 {
@@ -176,6 +194,9 @@ sub parseURL
     # removing javascript, mailto, FTP links and anchors links
     @links = grep(!/^(#|ftp:|mailto:|javascript:).*/, @links);
 
+    # remving empty links
+    @links = grep(!/^\ *$/, @links);
+
     # Targets matching the given regexp
     my @grep;
     if ($casei)
@@ -230,10 +251,35 @@ sub constructURL
     # 0 = link
     # 1 = page
 
+    # in case the given page does not finish with a '/'
+    if (index($_[1], "/", 7) == -1)
+    {
+	$_[1] .= "/";
+    }
+
     # Testing if link is absolute
     if ((index($_[0], "http://") != -1) || (index($_[0], "https://") != -1))
     {
-	$newURL = $_[0];
+	# if we want all link (not only local to the website)
+	if ($all)
+	{
+	    $newURL = $_[0];
+	}
+	else
+	{
+	    # Calculating host of the link
+            my $link_host = substr($_[0], 0, index($_[0], "/", 7) + 1);
+
+	    if ($link_host eq $host)
+	    {
+		$newURL = $_[0];
+	    }
+	    else
+	    {
+		# return empty string
+		$newURL = "";
+	    }
+	}
     }
     else
     {
@@ -246,7 +292,7 @@ sub constructURL
 	else
 	{
 	    # Need the root URL
-	    $newURL = substr($_[1], 0, index($_[1], "/", 8));
+	    $newURL = $host;
 	}
 
 	# We need to remove the last '/' of the host
@@ -281,7 +327,6 @@ sub constructURL
             }
         }
     }
-
     
     #print ("0  " . $_[0]."\n");
     #print ("1  " .$_[1]."\n");
