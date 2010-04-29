@@ -12,6 +12,7 @@ TODO list:
 ==v2.0==
 
 TODO list:
+  * Handle redirections
   * Implement a callback function system that could be called for each URL (so the URL can be tested for SQL injection for example).
   * Stealth mode?
   * HTML generation
