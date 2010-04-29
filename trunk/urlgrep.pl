@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #####################################
-# URLgrep v0.41                     #
+# URLgrep v0.5                      #
 # by x0rz <hourto_c@epita.fr>       #
 #                                   #
 # http://code.google.com/p/urlgrep/ #
@@ -23,8 +23,10 @@ sub tsktsk {
 }
 
 
-my @crawled;
-my @targets;
+my @crawled;		# list of crawled urls
+my @targets;		# list of urls that matches the regexp
+my @targets_misc;	# list of misc links that matches the regexp
+
 
 my $total_links = 0;
 
@@ -40,7 +42,7 @@ my $output = "";
 my $casei = 0;
 my $all = 0;
 my $timeout = 5;
-
+my $cookie_file = "";
 
 GetOptions ('verbose' => \$verbose,
 	    'depth=i' => \$depth,
@@ -50,24 +52,34 @@ GetOptions ('verbose' => \$verbose,
 	    'output=s' => \$output,
 	    'help' => \$help,
 	    'all' => \$all,
-	    'timeout=i' => \$timeout);
+	    'timeout=i' => \$timeout,
+	    'cookie=s' => \$cookie_file);
 
+
+$ua->env_proxy(); # load env proxy (*_proxy)
 $ua->timeout($timeout);
 $ua->agent('Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.6; fr; rv:1.9.2.3) Gecko/20100401 Firefox/3.6.3');
 
+# cookie
+if ($cookie_file ne "")
+{
+    $ua->cookie_jar({ file => $cookie_file });
+}
+
+
 if ($help != 0)
 {
-    print_comm ("URLgrep v0.41\n");
-    print_comm ("by x0rz <hourto_c@epita.fr>\n");
+    print_comm ("URLgrep v0.5\n");
+    print_comm ("by x0rz <hourto_c\@epita.fr>\n");
     print_comm ("http://code.google.com/p/urlgrep/\n");
     print_comm ("\n");
-    print_comm ("usage: ./urlgrep.pl -u URL [-r -i -d -a -o -t -v -h]\n");
+    print_comm ("usage: ./urlgrep.pl -u URL [-r -i -d -a -o -t -c -v -h]\n");
     exit 0;
 }
 
 if ($entry_url eq "")
 {
-    print_comm ("usage: ./urlgrep.pl -u URL [-r -i -d -a -o -t -v -h]\n");
+    print_comm ("usage: ./urlgrep.pl -u URL [-r -i -d -a -o -t -c -v -h]\n");
     exit 1;
 }
 
@@ -115,11 +127,29 @@ sub finishing
     print_ok();
     print "Crawl done - crawled ".scalar(@crawled)." URL(s).\n";
     
+    # removing duplicates
     %seen = ();
     foreach $item (@targets) {
 	push(@targets_u, $item) unless $seen{$item}++;
     }
+
+    # searching in misc links
+    my $grep;
+    if ($casei)
+    {
+        @grep = grep(/$regexp/i, @targets_misc);
+    }
+    else
+    {
+        @grep = grep(/$regexp/, @targets_misc);
+    }
+    # removing duplicates for misc links
+    %seen = ();
+    foreach $item (@targets_misc) {
+        push(@targets_misc_u, $item) unless $seen{$item}++;
+    }
     
+
     if (scalar(@targets_u) == 0)
     {
 	print_ko();
@@ -156,7 +186,17 @@ sub finishing
 	    }
 
 	}
+    }
 
+    if (scalar(@targets_misc_u) != 0)
+    {
+	print_comm ("We also found some other links that may interest you:\n");
+    }
+
+    foreach $link (@targets_misc_u)
+    {
+	print_info();
+	print $link."\n";
     }
 }
 
@@ -181,7 +221,7 @@ sub parseURL
     {
 	print("\n");
 	print_ko();
-	print "Could't reach the page.\n";
+	print "Couldn't reach the page.\n";
     }
 
     # Extract links
@@ -197,12 +237,6 @@ sub parseURL
 	push @links, constructURL($link->[2], $_[0]);
     }
 
-    # removing images and other special files
-    @links = grep(!/.*\.(gif|jpe?g|png|css|js|ico|swf|axd|jsp|pdf)$/, @links);
-
-    # removing javascript, mailto, FTP links and anchors links
-    @links = grep(!/^(#|ftp:|mailto:|javascript:).*/, @links);
-
     # remving empty links
     @links = grep(!/^\ *$/, @links);
 
@@ -216,6 +250,8 @@ sub parseURL
     {
 	@grep = grep(/$regexp/, @links);
     }
+
+    # Adding the results to the targets list
     @targets = (@targets, @grep);
 
     if ($verbose == 1)
@@ -245,7 +281,8 @@ sub parseURL
 	    }
 
 	    # if not visited yet, parse it
-	    if ($visited == 0)
+	    if ($visited == 0 &&
+		($link =~ !m/.*\.(gif|jpe?g|png|css|js|ico|swf|axd|jsp|pdf)$/i))
 	    {
 		parseURL($link, $_[1] + 1);
 	    }
@@ -255,10 +292,28 @@ sub parseURL
 
 sub constructURL
 {
-    my $newURL;
-
     # 0 = link
     # 1 = page
+
+    my $newURL = "";
+    my $protocol = "";
+
+    # check if it's a good http link
+    if ($_[0] =~ m!^(ftp:|mailto:|javascript:|#).*!i)
+    {
+	# we keep it in our misc list
+	push (@targets_misc, $_[0]);
+	return  "";
+    }
+
+    if ($_[1] =~ m!^https://!i)
+    {
+	$protocol = "https://";
+    }
+    else
+    {
+	$protocol = "http://";
+    }
 
     # in case the given page does not finish with a '/'
     if (index($_[1], "/", 7) == -1)
@@ -267,7 +322,7 @@ sub constructURL
     }
 
     # Testing if link is absolute
-    if ((index($_[0], "http://") != -1) || (index($_[0], "https://") != -1))
+    if ($_[0] =~ m!^https?://!i)
     {
 	# if we want to go through all the links (not only local to the website)
 	if ($all)
@@ -290,7 +345,7 @@ sub constructURL
 	    }
 	}
     }
-    else
+    else  # link is relative
     {
 	# Construct directory URL
 	if (substr($_[1], 0, 1) ne "/")
@@ -301,7 +356,7 @@ sub constructURL
 	else
 	{
 	    # Need the root URL
-	    $newURL = "http://".find_wwwhost($_[1]);
+	    $newURL = $protocol.find_wwwhost($_[1]);
 	}
 
 	# We need to remove the last '/' of the host
@@ -316,11 +371,11 @@ sub constructURL
             # href link begins with "//"
             if (substr($_[0], 0, 2) eq "//")
             {
-                $newURL = "http://" . substr($_[0], 2, length($_[0] - 2));
+                $newURL = $protocol . substr($_[0], 2, length($_[0] - 2));
             }
             else
             {
-                $newURL = "http://" . find_wwwhost($_[1]) . '/' . substr($_[0],1);
+                $newURL = $protocol . find_wwwhost($_[1]) . '/' . substr($_[0],1);
             }
         }
         else
