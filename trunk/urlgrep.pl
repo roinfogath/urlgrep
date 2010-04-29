@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #####################################
-# URLgrep v0.5                      #
+# URLgrep v0.51                     #
 # by x0rz <hourto_c@epita.fr>       #
 #                                   #
 # http://code.google.com/p/urlgrep/ #
@@ -60,7 +60,7 @@ $ua->env_proxy(); # load env proxy (*_proxy)
 $ua->timeout($timeout);
 $ua->agent('Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.6; fr; rv:1.9.2.3) Gecko/20100401 Firefox/3.6.3');
 
-# cookie
+# Load cookie (if asked)
 if ($cookie_file ne "")
 {
     $ua->cookie_jar({ file => $cookie_file });
@@ -69,7 +69,7 @@ if ($cookie_file ne "")
 
 if ($help != 0)
 {
-    print_comm ("URLgrep v0.5\n");
+    print_comm ("URLgrep v0.51\n");
     print_comm ("by x0rz <hourto_c\@epita.fr>\n");
     print_comm ("http://code.google.com/p/urlgrep/\n");
     print_comm ("\n");
@@ -84,7 +84,7 @@ if ($entry_url eq "")
 }
 
 
-# Calculating host
+# Computing host
 my $host = find_hostname($entry_url);
 
 print_comm ("Running URLgrep on " . $entry_url ."\n");
@@ -281,10 +281,13 @@ sub parseURL
 	    }
 
 	    # if not visited yet, parse it
-	    if ($visited == 0 &&
-		($link =~ !m/.*\.(gif|jpe?g|png|css|js|ico|swf|axd|jsp|pdf)$/i))
+	    if ($visited == 0)
 	    {
-		parseURL($link, $_[1] + 1);
+		# do not browse css/js/images/etc.		
+		if (!($link =~ m/.*\.(gif|jpe?g|png|css|js|ico|swf|axd|jsp|pdf)$/i))
+		{
+		    parseURL($link, $_[1] + 1);
+		}
 	    }
 	}
     }
