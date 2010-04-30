@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #####################################
-# URLgrep v0.51                     #
+# URLgrep v0.5.1                    #
 # by x0rz <hourto_c@epita.fr>       #
 #                                   #
 # http://code.google.com/p/urlgrep/ #
@@ -48,7 +48,7 @@ my $all = 0;
 my $timeout = 5;
 my $cookie_file = "";
 
-GetOptions ('verbose' => \$verbose,
+GetOptions ('v|verbose' => \$verbose,
 	    'depth=i' => \$depth,
 	    'url=s' => \$entry_url,
 	    'regexp=s' => \$regexp,
@@ -56,6 +56,7 @@ GetOptions ('verbose' => \$verbose,
 	    'm|invert-match' => \$invert,
 	    'output=s' => \$output,
 	    'help' => sub { helpmessage() },
+	    'version' => sub { helpmessage() },
 	    'all' => \$all,
 	    'timeout=i' => \$timeout,
 	    'cookie=s' => \$cookie_file);
@@ -78,12 +79,12 @@ sub usage
 
 sub helpmessage
 {
-    print_comm ("URLgrep v0.51\n");
+    print_comm ("URLgrep v0.5.1\n");
     print_comm ("by x0rz <hourto_c\@epita.fr>\n");
     print_comm ("http://code.google.com/p/urlgrep/\n");
     print_comm ("\n");
     print_comm (&usage());
-    print_comm ("-u, --url\n", "bold");
+    print_comm ("-u http_url, --url http_url\n", "bold");
     print_comm ("	target webpage's url\n");
     print_comm ("-d n, --depth n\n", "bold");
     print_comm ("	set the depth of the crawler (default=1)\n");

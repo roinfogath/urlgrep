@@ -1,29 +1,32 @@
-URLgrep v0.4.1
+URLgrep v0.5.1
 ##############
 
 Please visit http://code.google.com/p/urlgrep/
 
-
 Below are the currently supported options:
 
---url link
-url of the target webpage.
---depth n
-depth of the search (default=1).
---all
-specify this option if you want to search in pages that link outside.
---regexp reg
-the regular expression you want to apply (see example below).
---insensitive
-Case insensitive search.
---output file
-will dump all matching URLs into the specified file.
---timeout n
-set the timeout when requesting a page (default=5 seconds).
---help
-show the help and usage.
---verbose
-verbose mode.
+-u link, --url link
+target webpage's url
+-d n, --depth n
+set the depth of the crawler (default=1)
+-a, --all
+specify this option if you want to search in pages that link outside
+-r exp, --regexp exp
+the regular expression you want to apply (see example below)
+-i, --ignore-case
+case insensitive search
+-m, --invert-match
+invert the sense of matching
+-o file, --output file
+will dump all matching URLs into the specified file
+-t n, --timeout n
+set the timeout when requesting a page (default=5 seconds)
+-c file, --cookie file
+specify your cookie file
+-v ,--verbose
+verbose mode
+-h, --help
+show the help and usage
 Examples
 
 ./urlgrep.pl --url="http://www.epita.fr/" --regexp="\?" -d 1 -v
