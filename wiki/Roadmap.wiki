@@ -1,18 +1,25 @@
 #summary What to do?
 #labels Featured,Phase-Design
 
+==v0.5==
+
+TODO list:
+  * Proxy support (via environment variable http_proxy)
+  * Cookie support (--cookie to give the cookie)
+  * Fixing bugs in URL constructions
 
 ==v1.0==
 
 TODO list:
-  * HTTPS support
-  * Cleaning the code...
-
+  * Full HTTPS support (seems to be buggy in some cases)
+  * Colorize the results (like grep --color)
+  * Clean the code (refactoring)...
+  * Maybe an even more generic code and provide a simple crawler API, then copy our code in it (because the crawler could be useful in many other cases)
 
 ==v2.0==
 
 TODO list:
   * Handle redirections
-  * Implement a callback function system that could be called for each URL (so the URL can be tested for SQL injection for example).
-  * Stealth mode?
+  * Implement a callback function that could be called for each URL
+  * Stealth mode
   * HTML generation
