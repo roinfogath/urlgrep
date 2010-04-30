@@ -12,6 +12,9 @@ use HTML::LinkExtor;
 use Term::ANSIColor;
 use Getopt::Long;
 
+# debug
+use Data::Dumper;
+
 # Catching Ctrl-C
 $SIG{INT} = \&tsktsk;
 
@@ -40,6 +43,7 @@ my $verbose = 0;
 my $help = 0;
 my $output = "";
 my $casei = 0;
+my $invert = 0;
 my $all = 0;
 my $timeout = 5;
 my $cookie_file = "";
@@ -48,9 +52,10 @@ GetOptions ('verbose' => \$verbose,
 	    'depth=i' => \$depth,
 	    'url=s' => \$entry_url,
 	    'regexp=s' => \$regexp,
-	    'insensitive' => \$casei,
+	    'i|ignore-case' => \$casei,
+	    'm|invert-match' => \$invert,
 	    'output=s' => \$output,
-	    'help' => \$help,
+	    'help' => sub { helpmessage() },
 	    'all' => \$all,
 	    'timeout=i' => \$timeout,
 	    'cookie=s' => \$cookie_file);
@@ -66,20 +71,46 @@ if ($cookie_file ne "")
     $ua->cookie_jar({ file => $cookie_file });
 }
 
+sub usage
+{
+    return "usage: ./urlgrep.pl -u URL [-r -i -m -d -a -o -t -c -v -h]\n";
+}
 
-if ($help != 0)
+sub helpmessage
 {
     print_comm ("URLgrep v0.51\n");
     print_comm ("by x0rz <hourto_c\@epita.fr>\n");
     print_comm ("http://code.google.com/p/urlgrep/\n");
     print_comm ("\n");
-    print_comm ("usage: ./urlgrep.pl -u URL [-r -i -d -a -o -t -c -v -h]\n");
+    print_comm (&usage());
+    print_comm ("-u, --url\n", "bold");
+    print_comm ("	target webpage's url\n");
+    print_comm ("-d n, --depth n\n", "bold");
+    print_comm ("	set the depth of the crawler (default=1)\n");
+    print_comm ("-a, --all\n", "bold");
+    print_comm ("	will search outside of the specified website\n");
+    print_comm ("-r exp, --regexp exp\n", "bold");
+    print_comm ("	the regular expression you want to apply\n");
+    print_comm ("-i, --ignore-case\n", "bold");
+    print_comm ("	ignore case distinctions\n");
+    print_comm ("-m, --invert-match\n", "bold");
+    print_comm ("       invert the sense of matching\n");
+    print_comm ("-o file, --output file\n", "bold");
+    print_comm ("	specify the output file if you want to log the search\n");
+    print_comm ("-t n, --timeout n\n", "bold");
+    print_comm ("	set the timeout when requesting a page (default=5s)\n");
+    print_comm ("-c file, --cookie file\n", "bold");
+    print_comm ("	specify your cookie file\n");
+    print_comm ("-v, --verbose\n", "bold");
+    print_comm ("	verbose mode\n");
+    print_comm ("-h, --help\n", "bold");
+    print_comm ("       show the help message\n");
     exit 0;
 }
 
 if ($entry_url eq "")
 {
-    print_comm ("usage: ./urlgrep.pl -u URL [-r -i -d -a -o -t -c -v -h]\n");
+    print_comm (&usage());
     exit 1;
 }
 
@@ -88,7 +119,7 @@ if ($entry_url eq "")
 my $host = find_hostname($entry_url);
 
 print_comm ("Running URLgrep on " . $entry_url ."\n");
-print_comm ("Regexp: /".$regexp."/".($casei? "i" : "")."\n");
+print_comm ("Regexp: ".($invert? "!" : "")."/".$regexp."/".($casei? "i" : "")."\n");
 print_comm ("Started on ".gmtime()." \n");
 
 #
@@ -120,12 +151,43 @@ sub find_wwwhost
     return (URI->new($_[0])->host);
 }
 
+# grep the list with the given options and regexp
+sub greplist
+{
+    my @grep = {};
+
+    if ($casei)
+    {
+	if ($invert)
+	{
+	    @grep = grep(!/$regexp/i, @{$_[0]});
+	}
+	else
+	{
+	    @grep = grep(/$regexp/i, @{$_[0]});
+	}
+    }
+    else
+    {
+	if ($invert)
+        {
+            @grep = grep(!/$regexp/, @{$_[0]});
+        }
+        else
+        {
+            @grep = grep(/$regexp/, @{$_[0]});
+        }
+    }
+
+    return @grep;
+}
+
 sub finishing
 {
     print_comm ("Finished on ".gmtime()." \n");
     
     print_ok();
-    print "Crawl done - crawled ".scalar(@crawled)." URL(s).\n";
+    print "Crawl done [".scalar(@crawled)." URL(s) visited].\n";
     
     # removing duplicates
     %seen = ();
@@ -134,15 +196,8 @@ sub finishing
     }
 
     # searching in misc links
-    my $grep;
-    if ($casei)
-    {
-        @grep = grep(/$regexp/i, @targets_misc);
-    }
-    else
-    {
-        @grep = grep(/$regexp/, @targets_misc);
-    }
+    @targets_misc  = greplist(\@targets_misc);
+
     # removing duplicates for misc links
     %seen = ();
     foreach $item (@targets_misc) {
@@ -240,18 +295,8 @@ sub parseURL
     # remving empty links
     @links = grep(!/^\ *$/, @links);
 
-    # Targets matching the given regexp
-    my @grep;
-    if ($casei)
-    {
-	@grep = grep(/$regexp/i, @links);
-    }
-    else
-    {
-	@grep = grep(/$regexp/, @links);
-    }
-
-    # Adding the results to the targets list
+    # Adding the grep results to the targets list
+    my @grep = greplist(\@links);
     @targets = (@targets, @grep);
 
     if ($verbose == 1)
@@ -304,8 +349,11 @@ sub constructURL
     # check if it's a good http link
     if ($_[0] =~ m!^(ftp:|mailto:|javascript:|#).*!i)
     {
-	# we keep it in our misc list
-	push (@targets_misc, $_[0]);
+	# we keep it in our misc list but not anchor links
+	if ($_[0][0] != '#')
+	{
+	    push (@targets_misc, $_[0]);
+	}
 	return  "";
     }
 
@@ -436,7 +484,12 @@ sub print_info {
 sub print_comm {
     print color 'bold red';
     print "# ";
-    print color 'reset';
+    
+    if (!((defined $_[1]) && $_[1] == "bold"))
+    {
+	print color 'reset';
+    }
+    
     print color 'yellow';
     print $_[0];
     print color 'reset';
