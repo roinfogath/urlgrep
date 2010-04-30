@@ -3,7 +3,7 @@
 
 ==v0.5==
 
-TODO list:
+*DONE*:
   * Proxy support (via environment variable http_proxy)
   * Cookie support (--cookie to give the cookie)
   * Fixing bugs in URL constructions
@@ -12,14 +12,17 @@ TODO list:
 
 TODO list:
   * Full HTTPS support (seems to be buggy in some cases)
-  * Colorize the results (like grep --color)
   * Clean the code (refactoring)...
+  * Implement a callback function that could be called for each URL
   * Maybe an even more generic code and provide a simple crawler API, then copy our code in it (because the crawler could be useful in many other cases)
+  * Regroup similar URL in output
+     ** for example _index.php?id=1_, _index.php?id=2_, ..., _index.php?id=42_ to become only _index.php?id=*X*_)
 
 ==v2.0==
 
 TODO list:
   * Handle redirections
-  * Implement a callback function that could be called for each URL
+  * Colorize the results (like grep --color)
   * Stealth mode
+  * Maybe an even more generic code and provide a simple crawler API, then copy our code in it (because the crawler could be useful in many other cases)
   * HTML generation
