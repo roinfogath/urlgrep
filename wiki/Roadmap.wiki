@@ -26,3 +26,4 @@ TODO list:
   * Stealth mode
   * Maybe an even more generic code and provide a simple crawler API, then copy our code in it (because the crawler could be useful in many other cases)
   * HTML generation
+  * Parallelize HTTP requests for faster results
