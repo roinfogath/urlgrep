@@ -4,32 +4,38 @@
 = Options =
 
 Below are the currently supported options:
-  * _--url link_
-   ** url of the target webpage.
+  * _-u link, --url link_
+   ** target webpage's url
 
-  * _--depth n_
-   ** depth of the search (default=1).
+  * _-d n, --depth n_
+   ** set the depth of the crawler (default=1)
 
-  * _--all_
-   ** specify this option if you want to search in pages that link outside.
+  * _-a, --all_
+   ** specify this option if you want to search in pages that link outside
 
-  * _--regexp reg_
-   ** the regular expression you want to apply (see example below).
+  * _-r exp, --regexp exp_
+   ** the regular expression you want to apply (see example below)
 
-  * _--insensitive_
-   ** Case insensitive search.
+  * _-i, --ignore-case_
+   ** case insensitive search
 
-  * _--output file_
-   ** will dump all matching URLs into the specified _file_.
+  * _-m, --invert-match_
+   ** invert the sense of matching
 
-  * _--timeout n_
-   ** set the timeout when requesting a page (default=5 seconds).
+  * _-o file, --output file_
+   ** will dump all matching URLs into the specified _file_
 
-  * _--help_ 
-   ** show the help and usage.
+  * _-t n, --timeout n_
+   ** set the timeout when requesting a page (default=5 seconds)
 
-  * _--verbose_
-   ** verbose mode.
+  * _-c file, --cookie file_
+   ** specify your cookie file
+
+  * _-v ,--verbose_
+   ** verbose mode
+
+  * _-h, --help_ 
+   ** show the help and usage
 
 
 = Examples =
