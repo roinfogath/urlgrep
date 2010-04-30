@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #####################################
-# URLgrep v0.5.2                    #
+# URLgrep v0.5.3                    #
 # by x0rz <hourto_c@epita.fr>       #
 #                                   #
 # http://code.google.com/p/urlgrep/ #
@@ -9,6 +9,7 @@
 
 use LWP::Simple qw($ua get);;
 use HTML::LinkExtor;
+use HTML::HeadParser;
 use Term::ANSIColor;
 use Getopt::Long;
 
@@ -25,17 +26,15 @@ sub tsktsk {
     exit 0;
 }
 
-
+# Globals
 my @crawled;		# list of crawled urls
 my @targets;		# list of urls that matches the regexp
 my @targets_misc;	# list of misc links that matches the regexp
-
+my $base = "";		# base URL (corresponds to the <base> HTML tag)
 
 my $total_links = 0;
 
-#
-# 1. Options
-#
+# Options
 my $entry_url = "";
 my $depth = 1;
 my $regexp = "^.*\$";
@@ -79,7 +78,7 @@ sub usage
 
 sub helpmessage
 {
-    print_comm ("URLgrep v0.5.2\n");
+    print_comm ("URLgrep v0.5.3\n");
     print_comm ("by x0rz <hourto_c\@epita.fr>\n");
     print_comm ("http://code.google.com/p/urlgrep/\n");
     print_comm ("\n");
@@ -246,7 +245,7 @@ sub finishing
 
     if (scalar(@targets_misc_u) != 0)
     {
-	print_comm ("We also found some other links that may interest you:\n");
+	print_comm ("Also found ".scalar(@targets_misc_u)." special link(s) that may interest you:\n");
     }
 
     foreach $link (@targets_misc_u)
@@ -280,6 +279,12 @@ sub parseURL
 	print "Couldn't reach the page.\n";
     }
 
+    # Extract header data (for <base> tag essentially)
+    my $head = HTML::HeadParser->new;
+    $head->parse($content);
+    # Setting up the current base (can be empty)
+    my $base = $head->header('Content-Base');
+    
     # Extract links
     my $parser = HTML::LinkExtor->new();
 
@@ -290,7 +295,7 @@ sub parseURL
 
     foreach $link (@parse)
     {
-	push @links, constructURL($link->[2], $_[0]);
+	push @links, constructURL($link->[2], $_[0], $base);
     }
 
     # remving empty links
@@ -343,27 +348,36 @@ sub constructURL
 {
     # 0 = link
     # 1 = page
+    # 2 = base (from <base> tag, can be empty)
+    
+    my $complete_url;
 
     local $URI::ABS_REMOTE_LEADING_DOTS = 1;
     local $URI::ABS_ALLOW_RELATIVE_SCHEME = 1;
 
     # capture weird links (javascript, anchor, others protocols, etc.)
-    if (($_[0] =~ m!^(.+://|#).*!) &&
+    if (($_[0] =~ m!^(\w+:.+|#).*!) &&
 	!($_[0] =~ m!^(https?://).*!i))
     {
-
 	# we keep it in our misc list but not anchor links
-        if ($_[0][0] != '#')
+        if (! ($_[0] =~ m!^#.*!))
         {
             push (@targets_misc, $_[0]);
-        }
-
-	
+	}
+ 
+	# return "" so it won't be part of the list
 	return "";
     }
 
     # building correct link
-    my $complete_url = URI->new($_[0])->abs($_[1]);
+    if ($_[2] ne "")
+    {
+	$complete_url = URI->new($_[0])->abs($_[2]);
+    }
+    else
+    {
+	$complete_url = URI->new($_[0])->abs($_[1]);
+    }
 
     # if we want to go through all the links (not only local to the website)
     if ($all)
