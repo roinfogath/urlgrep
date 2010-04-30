@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #####################################
-# URLgrep v0.5.1                    #
+# URLgrep v0.5.2                    #
 # by x0rz <hourto_c@epita.fr>       #
 #                                   #
 # http://code.google.com/p/urlgrep/ #
@@ -79,7 +79,7 @@ sub usage
 
 sub helpmessage
 {
-    print_comm ("URLgrep v0.5.1\n");
+    print_comm ("URLgrep v0.5.2\n");
     print_comm ("by x0rz <hourto_c\@epita.fr>\n");
     print_comm ("http://code.google.com/p/urlgrep/\n");
     print_comm ("\n");
@@ -273,7 +273,7 @@ sub parseURL
 
     # Get the HTML page
     my $content = get($_[0]);
-    if (!defined $content)
+    if (!defined $content && $verbose)
     {
 	print("\n");
 	print_ko();
@@ -344,111 +344,51 @@ sub constructURL
     # 0 = link
     # 1 = page
 
-    my $newURL = "";
-    my $protocol = "";
+    local $URI::ABS_REMOTE_LEADING_DOTS = 1;
+    local $URI::ABS_ALLOW_RELATIVE_SCHEME = 1;
 
-    # check if it's a good http link
-    if ($_[0] =~ m!^(ftp:|mailto:|javascript:|#).*!i)
+    # capture weird links (javascript, anchor, others protocols, etc.)
+    if (($_[0] =~ m!^(.+://|#).*!) &&
+	!($_[0] =~ m!^(https?://).*!i))
     {
+
 	# we keep it in our misc list but not anchor links
-	if ($_[0][0] != '#')
-	{
-	    push (@targets_misc, $_[0]);
-	}
-	return  "";
+        if ($_[0][0] != '#')
+        {
+            push (@targets_misc, $_[0]);
+        }
+
+	
+	return "";
     }
 
-    if ($_[1] =~ m!^https://!i)
+    # building correct link
+    my $complete_url = URI->new($_[0])->abs($_[1]);
+
+    # if we want to go through all the links (not only local to the website)
+    if ($all)
     {
-	$protocol = "https://";
+	return $complete_url;
     }
     else
     {
-	$protocol = "http://";
-    }
-
-    # in case the given page does not finish with a '/'
-    if (index($_[1], "/", 7) == -1)
-    {
-	$_[1] .= "/";
-    }
-
-    # Testing if link is absolute
-    if ($_[0] =~ m!^https?://!i)
-    {
-	# if we want to go through all the links (not only local to the website)
-	if ($all)
+	# Calculating host of the link
+	my $link_host = find_hostname($complete_url);
+	
+	if ($link_host eq $host)
 	{
-	    $newURL = $_[0];
+	    return $complete_url;
 	}
 	else
 	{
-	    # Calculating host of the link
-	    my $link_host = find_hostname($_[0]);
-
-	    if ($link_host eq $host)
-	    {
-		$newURL = $_[0];
-	    }
-	    else
-	    {
-		# return empty string
-		$newURL = "";
-	    }
+	    # return empty string
+	    return "";
 	}
-    }
-    else  # link is relative
-    {
-	# Construct directory URL
-	if (substr($_[1], 0, 1) ne "/")
-	{
-	    # Relative URL
-	    $newURL = substr($_[1], 0, rindex($_[1], "/"));
-	}
-	else
-	{
-	    # Need the root URL
-	    $newURL = $protocol.find_wwwhost($_[1]);
-	}
-
-	# We need to remove the last '/' of the host
-        if (substr($newURL, -1, 1) eq "/")
-        {
-            chop($newURL);
-        }
-
-        # href link begins with '/'
-        if (substr($_[0], 0, 1) eq "/")
-        {
-            # href link begins with "//"
-            if (substr($_[0], 0, 2) eq "//")
-            {
-                $newURL = $protocol . substr($_[0], 2, length($_[0] - 2));
-            }
-            else
-            {
-                $newURL = $protocol . find_wwwhost($_[1]) . '/' . substr($_[0],1);
-            }
-        }
-        else
-        {
-            # href link begins with "./"
-            if (substr($_[0], 0, 2) eq "./")
-            {
-                $newURL = $newURL . '/' . substr($_[0], 2, length($_[0] - 2));
-            }
-            else
-            {
-                $newURL = $newURL . '/' . $_[0];
-            }
-        }
     }
     
     #print ("0  " . $_[0]."\n");
     #print ("1  " .$_[1]."\n");
     #print("==> " . $newURL."\n");
-
-    return ($newURL);
 }
 
 # Misc
