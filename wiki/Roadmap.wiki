@@ -4,9 +4,9 @@
 ==v0.5==
 
 *DONE*:
-  * Proxy support (via environment variable http_proxy)
-  * Cookie support (--cookie to give the cookie)
-  * Fixing bugs in URL constructions
+  * ~~Proxy support (via environment variable http_proxy)~~
+  * ~~Cookie support (--cookie to give the cookie)~~
+  * ~~Fixing bugs in URL constructions~~
 
 ==v1.0==
 
