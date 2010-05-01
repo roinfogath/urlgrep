@@ -15,10 +15,10 @@ TODO list:
   * ~~Handle the `<base href="..." />` for link constructions~~
   * Clean the code (refactoring)...
   * Implement a callback function that could be called for each URL
-  * Maybe an even more generic code and provide a simple crawler API, then copy our code in it (because the crawler could be useful in many other cases)
   * Regroup similar URL in output
      ** for example _index.php?id=1_, _index.php?id=2_, ..., _index.php?id=42_ to become only _index.php?id=*X*_)
   * Check the HTTP header to make sure we are not requesting a binary file
+  * Generate random User Agents
 
 ==v2.0==
 
@@ -27,5 +27,5 @@ TODO list:
   * Colorize the results (like grep --color)
   * Stealth mode
   * HTML generation
-  * Parallelize HTTP requests for faster results
-  * Generate random User Agents
+  * Parallelize HTTP requests using threads for faster results
+  * Maybe an even more generic code and provide a simple crawler API, then copy our code in it (because the crawler could be useful in many other cases)
