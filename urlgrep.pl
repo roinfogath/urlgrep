@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #####################################
-# URLgrep v0.5.5                    #
+# URLgrep v0.5.6                    #
 # by x0rz <hourto_c@epita.fr>       #
 #                                   #
 # http://code.google.com/p/urlgrep/ #
@@ -16,15 +16,19 @@ use HTML::HeadParser;
 use Term::ANSIColor;
 use Getopt::Long;
 
+use threads;
+
 # Globals
 our @crawled;		# list of crawled urls
 our @targets;		# list of urls that matches the regexp
 our @targets_misc;	# list of misc links
 our %UGCONF;		# URLgrep configuration
 
-$UGCONF{'VERSION'}	= "0.5.5";
+$UGCONF{'VERSION'}	= "0.5.6-dev";
 $UGCONF{'TIMEOUT'}	= 5;
 $UGCONF{'DEPTH'}	= 1;
+$UGCONF{'MAXTHREADS'}	= 4;
+$UGCONF{'NOTHREADS'}	= 0;
 
 # Options
 our $entry_url = "";
@@ -51,7 +55,8 @@ GetOptions ('v|verbose' => \$verbose,
 	    'version' => sub { helpmessage() },
 	    'all' => \$all,
 	    'timeout=i' => \$UGCONF{'TIMEOUT'},
-	    'cookie=s' => \$cookie_file);
+	    'cookie=s' => \$cookie_file,
+	    'no-threads' => \$UGCONF{'NOTHREADS'});
 
 
 $ua->env_proxy(); # load env proxy (*_proxy)
@@ -133,6 +138,10 @@ sub helpmessage
     print_comm ("	set the timeout when requesting a page (default=5s)\n");
     print_comm ("-c file, --cookie file\n", "bold");
     print_comm ("	specify your cookie file\n");
+    
+    print_comm ("-n, --no-threads\n", "bold");
+    print_comm ("       won't use threads\n");
+
     print_comm ("-v, --verbose\n", "bold");
     print_comm ("	verbose mode\n");
     print_comm ("-h, --help\n", "bold");
@@ -147,7 +156,7 @@ sub find_hostname
     $url =~ s!^https?://(?:www\.)?!!i;
     $url =~ s!/.*!!;
     $url =~ s/[\?\#\:].*//;
-    
+
     return $url;
 }
 
@@ -196,17 +205,31 @@ sub remove_duplicates
     foreach my $item (@{$_[0]}) {
         push(@targets_u, $item) unless $seen{$item}++;
     }
-    
+
     return @targets_u;
 }
 
 sub finishing
 {
+    # terminating threads
+    if (!$UGCONF{'NOTHREADS'})
+    {
+	print_comm ("Waiting threads to finish... \n");
+
+	my @threads = threads->list();
+
+	foreach my $thr (@threads)
+	{
+	    $thr->detach();
+	    print "Thread ".$thr->tid()." terminated.\n"
+	}
+    }
+
     print_comm ("Finished on ".gmtime()." \n");
-    
+
     print_ok();
     print "Crawl done [".scalar(@crawled)." URL(s) visited].\n";
-    
+
     # removing duplicates
     @targets = remove_duplicates(\@targets);
 
@@ -215,7 +238,7 @@ sub finishing
 
     # removing duplicates for misc links
     @targets_misc = remove_duplicates(\@targets_misc);
-    
+
 
     if (scalar(@targets) == 0)
     {
@@ -291,7 +314,7 @@ sub parseURL
 	{
 	    print_ko();
 	    print "Couldn't reach the page.\n";
-	}	    
+	}
 	return;
     }
 
@@ -300,7 +323,7 @@ sub parseURL
     $head->parse($content);
     # Setting up the current base (can be null)
     my $base = $head->header('Content-Base');
-    
+
     # Extract links
     my $parser = HTML::LinkExtor->new();
 
@@ -324,7 +347,7 @@ sub parseURL
     if ($verbose == 1)
     {
 	print_ok();
-	print  scalar(@links) . " link(s) found.\n";
+	print scalar(@links) . " link(s) found.\n";
 	if (scalar(@grep) != 0) {
 	    print "     > " . scalar(@grep)." matched!\n";
 	}
@@ -350,10 +373,19 @@ sub parseURL
 	    # if not visited yet, parse it
 	    if ($visited == 0)
 	    {
-		# do not browse css/js/images/etc.		
+		# do not browse css/js/images/etc.
 		if (!($link =~ m/.*\.(gif|jpe?g|png|css|js|ico|swf|axd|jsp|pdf)$/i))
 		{
-		    parseURL($link, $_[1] + 1);
+		    my $thread_count = threads->list();
+
+		    if ($UGCONF{'NOTHREADS'} || $thread_count >= $UGCONF{'MAXTHREADS'})
+		    {
+			parseURL($link, $_[1] + 1);
+		    }
+		    else
+		    {
+			threads->create(\&parseURL, $link, $_[1] + 1);
+		    }
 		}
 	    }
 	}
@@ -365,7 +397,7 @@ sub constructURL
     # 0 = link
     # 1 = page
     # 2 = base (from <base> tag, can be null)
-    
+
     my $complete_url;
 
     local $URI::ABS_REMOTE_LEADING_DOTS = 1;
@@ -380,7 +412,7 @@ sub constructURL
         {
             push (@targets_misc, $_[0]);
 	}
- 
+
 	# return "" so it won't be part of the list
 	return "";
     }
@@ -404,7 +436,7 @@ sub constructURL
     {
 	# Calculating host of the link
 	my $link_host = find_hostname($complete_url);
-	
+
 	if ($link_host eq $host)
 	{
 	    return $complete_url;
@@ -415,7 +447,7 @@ sub constructURL
 	    return "";
 	}
     }
-    
+
     #print ("0  " . $_[0]."\n");
     #print ("1  " .$_[1]."\n");
     #print("==> " . $newURL."\n");
@@ -455,12 +487,12 @@ sub print_info {
 sub print_comm {
     print color 'bold red';
     print "# ";
-    
-    if (!((defined $_[1]) && $_[1] == "bold"))
+
+    if (!((defined $_[1]) && $_[1] eq "bold"))
     {
 	print color 'reset';
     }
-    
+
     print color 'yellow';
     print $_[0];
     print color 'reset';
