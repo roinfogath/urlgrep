@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #####################################
-# URLgrep v0.5.3                    #
+# URLgrep v0.5.4                    #
 # by x0rz <hourto_c@epita.fr>       #
 #                                   #
 # http://code.google.com/p/urlgrep/ #
@@ -78,7 +78,7 @@ sub usage
 
 sub helpmessage
 {
-    print_comm ("URLgrep v0.5.3\n");
+    print_comm ("URLgrep v0.5.4\n");
     print_comm ("by x0rz <hourto_c\@epita.fr>\n");
     print_comm ("http://code.google.com/p/urlgrep/\n");
     print_comm ("\n");
@@ -122,9 +122,7 @@ print_comm ("Running URLgrep on " . $entry_url ."\n");
 print_comm ("Regexp: ".($invert? "!" : "")."/".$regexp."/".($casei? "i" : "")."\n");
 print_comm ("Started on ".gmtime()." \n");
 
-#
-# 2. Call first root URL
-#
+# Call first root URL
 parseURL($entry_url, 0);
 
 if ($verbose == 0)
@@ -210,6 +208,7 @@ sub finishing
 	print_ko();
 	print color 'red';
 	print "No target found.\n";
+	print color 'reset';
     }
     else
     {
@@ -274,7 +273,6 @@ sub parseURL
     my $content = get($_[0]);
     if (!defined $content && $verbose)
     {
-	print("\n");
 	print_ko();
 	print "Couldn't reach the page.\n";
     }
