@@ -18,7 +18,7 @@ TODO list:
   * Maybe an even more generic code and provide a simple crawler API, then copy our code in it (because the crawler could be useful in many other cases)
   * Regroup similar URL in output
      ** for example _index.php?id=1_, _index.php?id=2_, ..., _index.php?id=42_ to become only _index.php?id=*X*_)
-  * Check in the HTTP header to make sure we are not requesting a binary file
+  * Check the HTTP header to make sure we are not requesting a binary file
 
 ==v2.0==
 
