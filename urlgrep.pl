@@ -1,11 +1,14 @@
 #!/usr/bin/perl
 #####################################
-# URLgrep v0.5.4                    #
+# URLgrep v0.5.5                    #
 # by x0rz <hourto_c@epita.fr>       #
 #                                   #
 # http://code.google.com/p/urlgrep/ #
 #####################################
-# Warning: this is a BETA VERSION -- use with caution!
+
+# debug
+use strict;
+use warnings;
 
 use LWP::Simple qw($ua get);;
 use HTML::LinkExtor;
@@ -13,42 +16,32 @@ use HTML::HeadParser;
 use Term::ANSIColor;
 use Getopt::Long;
 
-# debug
-use Data::Dumper;
+# Globals
+our @crawled;		# list of crawled urls
+our @targets;		# list of urls that matches the regexp
+our @targets_misc;	# list of misc links
+our %UGCONF;		# URLgrep configuration
+
+$UGCONF{'VERSION'}	= "0.5.5";
+$UGCONF{'TIMEOUT'}	= 5;
+$UGCONF{'DEPTH'}	= 1;
+
+# Options
+our $entry_url = "";
+our $regexp = "^.*\$";
+our $verbose = 0;
+our $help = 0;
+our $output = "";
+our $casei = 0;
+our $invert = 0;
+our $all = 0;
+our $cookie_file = "";
 
 # Catching Ctrl-C
 $SIG{INT} = \&tsktsk;
 
-sub tsktsk {
-    print ("\n");
-    print_comm ("Catching Ctrl-C!\n");
-    finishing();
-    exit 0;
-}
-
-# Globals
-my @crawled;		# list of crawled urls
-my @targets;		# list of urls that matches the regexp
-my @targets_misc;	# list of misc links that matches the regexp
-my $base = "";		# base URL (corresponds to the <base> HTML tag)
-
-my $total_links = 0;
-
-# Options
-my $entry_url = "";
-my $depth = 1;
-my $regexp = "^.*\$";
-my $verbose = 0;
-my $help = 0;
-my $output = "";
-my $casei = 0;
-my $invert = 0;
-my $all = 0;
-my $timeout = 5;
-my $cookie_file = "";
-
 GetOptions ('v|verbose' => \$verbose,
-	    'depth=i' => \$depth,
+	    'depth=i' => \$UGCONF{'DEPTH'},
 	    'url=s' => \$entry_url,
 	    'regexp=s' => \$regexp,
 	    'i|ignore-case' => \$casei,
@@ -57,12 +50,12 @@ GetOptions ('v|verbose' => \$verbose,
 	    'help' => sub { helpmessage() },
 	    'version' => sub { helpmessage() },
 	    'all' => \$all,
-	    'timeout=i' => \$timeout,
+	    'timeout=i' => \$UGCONF{'TIMEOUT'},
 	    'cookie=s' => \$cookie_file);
 
 
 $ua->env_proxy(); # load env proxy (*_proxy)
-$ua->timeout($timeout);
+$ua->timeout($UGCONF{'TIMEOUT'});
 $ua->agent('Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.6; fr; rv:1.9.2.3) Gecko/20100401 Firefox/3.6.3');
 
 # Load cookie (if asked)
@@ -71,14 +64,53 @@ if ($cookie_file ne "")
     $ua->cookie_jar({ file => $cookie_file });
 }
 
+# Catching Ctrl-C
+$SIG{INT} = \&tsktsk;
+
+# check for mandatory options
+if ($entry_url eq "")
+{
+    print_comm (&usage());
+    exit 1;
+}
+
+# Computing host
+my $host = find_hostname($entry_url);
+
+print_comm ("Running URLgrep on " . $entry_url ."\n");
+print_comm ("Regexp: ".($invert? "!" : "")."/".$regexp."/".($casei? "i" : "")."\n");
+print_comm ("Started on ".gmtime()." \n");
+
+# Call first root URL
+parseURL($entry_url, 0);
+
+if ($verbose == 0)
+{
+    print ("\n");
+}
+
+finishing();
+
+# Functions  ##############################
+
+# Ctrl-C catcher
+sub tsktsk {
+    print ("\n");
+    print_comm ("Catching Ctrl-C!\n");
+    finishing();
+    exit 0;
+}
+
+# show usage
 sub usage
 {
     return "usage: ./urlgrep.pl -u URL [-r -i -m -d -a -o -t -c -v -h]\n";
 }
 
+# show the help
 sub helpmessage
 {
-    print_comm ("URLgrep v0.5.4\n");
+    print_comm ("URLgrep v".$UGCONF{'VERSION'}."\n");
     print_comm ("by x0rz <hourto_c\@epita.fr>\n");
     print_comm ("http://code.google.com/p/urlgrep/\n");
     print_comm ("\n");
@@ -107,30 +139,6 @@ sub helpmessage
     print_comm ("       show the help message\n");
     exit 0;
 }
-
-if ($entry_url eq "")
-{
-    print_comm (&usage());
-    exit 1;
-}
-
-
-# Computing host
-my $host = find_hostname($entry_url);
-
-print_comm ("Running URLgrep on " . $entry_url ."\n");
-print_comm ("Regexp: ".($invert? "!" : "")."/".$regexp."/".($casei? "i" : "")."\n");
-print_comm ("Started on ".gmtime()." \n");
-
-# Call first root URL
-parseURL($entry_url, 0);
-
-if ($verbose == 0)
-{
-    print ("\n");
-}
-
-finishing();
 
 # return domain
 sub find_hostname
@@ -180,6 +188,18 @@ sub greplist
     return @grep;
 }
 
+sub remove_duplicates
+{
+    my %seen = ();
+    my @targets_u;
+
+    foreach my $item (@{$_[0]}) {
+        push(@targets_u, $item) unless $seen{$item}++;
+    }
+    
+    return @targets_u;
+}
+
 sub finishing
 {
     print_comm ("Finished on ".gmtime()." \n");
@@ -188,22 +208,16 @@ sub finishing
     print "Crawl done [".scalar(@crawled)." URL(s) visited].\n";
     
     # removing duplicates
-    %seen = ();
-    foreach $item (@targets) {
-	push(@targets_u, $item) unless $seen{$item}++;
-    }
+    @targets = remove_duplicates(\@targets);
 
     # searching in misc links
     @targets_misc  = greplist(\@targets_misc);
 
     # removing duplicates for misc links
-    %seen = ();
-    foreach $item (@targets_misc) {
-        push(@targets_misc_u, $item) unless $seen{$item}++;
-    }
+    @targets_misc = remove_duplicates(\@targets_misc);
     
 
-    if (scalar(@targets_u) == 0)
+    if (scalar(@targets) == 0)
     {
 	print_ko();
 	print color 'red';
@@ -214,8 +228,8 @@ sub finishing
     {
 	print_ok();
 	print color 'red';
-	print scalar(@targets_u)." URL(s) found matching /".$regexp."/".($casei? "i" : "")."\n";
-	foreach $link (@targets_u)
+	print scalar(@targets)." URL(s) found matching /".$regexp."/".($casei? "i" : "")."\n";
+	foreach my $link (@targets)
 	{
 	    print_info();
 	    print $link."\n";
@@ -231,7 +245,7 @@ sub finishing
 	    }
 	    else
 	    {
-		foreach $link (@targets_u)
+		foreach my $link (@targets)
 		{
 		    print FILE $link."\n";
 		}
@@ -242,12 +256,12 @@ sub finishing
 	}
     }
 
-    if (scalar(@targets_misc_u) != 0)
+    if (scalar(@targets_misc) != 0)
     {
-	print_comm ("Also found ".scalar(@targets_misc_u)." special link(s) that may interest you:\n");
+	print_comm ("Also found ".scalar(@targets_misc)." special link(s) that may interest you:\n");
     }
 
-    foreach $link (@targets_misc_u)
+    foreach my $link (@targets_misc)
     {
 	print_info();
 	print $link."\n";
@@ -271,16 +285,20 @@ sub parseURL
 
     # Get the HTML page
     my $content = get($_[0]);
-    if (!defined $content && $verbose)
+    if (!defined $content)
     {
-	print_ko();
-	print "Couldn't reach the page.\n";
+	if ($verbose)
+	{
+	    print_ko();
+	    print "Couldn't reach the page.\n";
+	}	    
+	return;
     }
 
     # Extract header data (for <base> tag essentially)
     my $head = HTML::HeadParser->new;
     $head->parse($content);
-    # Setting up the current base (can be empty)
+    # Setting up the current base (can be null)
     my $base = $head->header('Content-Base');
     
     # Extract links
@@ -291,7 +309,7 @@ sub parseURL
 
     my @links;
 
-    foreach $link (@parse)
+    foreach my $link (@parse)
     {
 	push @links, constructURL($link->[2], $_[0], $base);
     }
@@ -313,15 +331,15 @@ sub parseURL
     }
 
     # Testing current depth
-    if ($_[1] < $depth)
+    if ($_[1] < $UGCONF{'DEPTH'})
     {
 	# Grabbing all urls
-	foreach $link (@links)
+	foreach my $link (@links)
 	{
 	    my $visited = 0;
 
 	    # Checking if already done
-	    foreach $url_done (@crawled)
+	    foreach my $url_done (@crawled)
 	    {
 		if ($link eq $url_done)
 		{
@@ -346,7 +364,7 @@ sub constructURL
 {
     # 0 = link
     # 1 = page
-    # 2 = base (from <base> tag, can be empty)
+    # 2 = base (from <base> tag, can be null)
     
     my $complete_url;
 
@@ -368,7 +386,7 @@ sub constructURL
     }
 
     # building correct link
-    if ($_[2] ne "")
+    if (defined $_[2])
     {
 	$complete_url = URI->new($_[0])->abs($_[2]);
     }
