@@ -12,7 +12,7 @@
 
 TODO list:
   * Full HTTPS support (seems to be buggy in some cases)
-  * ~~Handle the _<base href="..." />_ for link constructions~~
+  * ~~Handle the `<base href="..." />` for link constructions~~
   * Clean the code (refactoring)...
   * Implement a callback function that could be called for each URL
   * Maybe an even more generic code and provide a simple crawler API, then copy our code in it (because the crawler could be useful in many other cases)
