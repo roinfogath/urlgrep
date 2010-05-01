@@ -14,7 +14,7 @@ TODO list:
   * ~~Full HTTPS support (seems to be buggy in some cases)~~ look like it works
   * ~~Handle the `<base href="..." />` for link constructions~~
   * Clean the code (refactoring)
-  * Doesn't log external links, fix it
+  * Should log external links as well
   * Implement a callback function that could be called for each URL
   * Regroup similar URL in output
      ** for example _index.php?id=1_, _index.php?id=2_, ..., _index.php?id=42_ to become only _index.php?id=*X*_)
