@@ -28,3 +28,4 @@ TODO list:
   * Stealth mode
   * HTML generation
   * Parallelize HTTP requests for faster results
+  * Generate random User Agents
