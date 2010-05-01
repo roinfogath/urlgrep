@@ -2,10 +2,10 @@
 
 === The following expressions can be used to check for dangerous URL ===
 
-  * `\?.+=.+\..+`
-   ** This can be file inclusion
+  * `(\?|&).+=.+\..+`
+   ** This can match URL or file inclusion
   * `\?.+=.+`
-   ** URLs that accept get requests (may be some SQL injections behind)
+   ** URLs that accept get requests (maybe some SQL injections behind)
   * `(\?|&)file.+=.+`
    ** That may look like LFI vulnerability
 
