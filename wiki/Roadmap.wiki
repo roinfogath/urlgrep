@@ -8,7 +8,7 @@
   * ~~Cookie support (--cookie to give the cookie)~~
   * ~~Fixing bugs in URL constructions~~
 
-==v1.0==
+==v0.8==
 
 TODO list:
   * ~~Full HTTPS support (seems to be buggy in some cases)~~ looks like it works
@@ -21,12 +21,15 @@ TODO list:
   * Check the HTTP header to make sure we are not requesting a binary file
   * Generate random User Agents
 
-==v2.0==
+==v1.0==
 
 TODO list:
   * Handle redirections
-  * Colorize the results (like grep --color)
+  * Colorize the results (like `grep --color`)
   * Stealth mode
-  * HTML generation
   * ~~Parallelize HTTP requests using threads for faster results~~ can be buggy for now (use `--no-threads` option)
+
+==v1.5==
+TODO list:
+  * HTML generation
   * Maybe an even more generic code and provide a simple crawler API, then copy our code in it (because the crawler could be useful in many other cases)
