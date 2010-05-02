@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #####################################
-# URLgrep v0.5.6                    #
+# URLgrep v0.5.7                    #
 # by x0rz <hourto_c@epita.fr>       #
 #                                   #
 # http://code.google.com/p/urlgrep/ #
@@ -17,14 +17,15 @@ use Term::ANSIColor;
 use Getopt::Long;
 
 use threads;
+use threads::shared;
 
 # Globals
-our @crawled;		# list of crawled urls
-our @targets;		# list of urls that matches the regexp
-our @targets_misc;	# list of misc links
-our %UGCONF;		# URLgrep configuration
+our @crawled : shared;		# list of crawled urls
+our @targets : shared;		# list of urls that matches the regexp
+our @targets_misc : shared;	# list of misc links
+our %UGCONF;			# URLgrep configuration
 
-$UGCONF{'VERSION'}	= "0.5.6-dev";
+$UGCONF{'VERSION'}	= "0.5.7-dev";
 $UGCONF{'TIMEOUT'}	= 5;
 $UGCONF{'DEPTH'}	= 1;
 $UGCONF{'MAXTHREADS'}	= 4;
@@ -213,13 +214,13 @@ sub greplist
 sub remove_duplicates
 {
     my %seen = ();
-    my @targets_u;
+    my @unique;
 
     foreach my $item (@{$_[0]}) {
-        push(@targets_u, $item) unless $seen{$item}++;
+        push(@unique, $item) unless $seen{$item}++;
     }
 
-    return @targets_u;
+    return @unique;
 }
 
 sub finishing
@@ -315,7 +316,11 @@ sub parseURL
 	$|++;
     }
 
-    push(@crawled, $_[0]);
+    # adding url to crawled list (with mutex)
+    {
+	lock(@crawled);
+	push(@crawled, "$_[0]");
+    }
 
     # Get the HTML page
     my $content = get($_[0]);
@@ -341,19 +346,22 @@ sub parseURL
     $parser->parse($content);
     my @parse = $parser->links;
 
-    my @links;
+    my @links : shared;
 
     foreach my $link (@parse)
     {
-	push @links, constructURL($link->[2], $_[0], $base);
+	push @links, "".constructURL($link->[2], $_[0], $base);
     }
 
     # remving empty links
     @links = grep(!/^\ *$/, @links);
 
     # Adding the grep results to the targets list
-    my @grep = greplist(\@links);
-    @targets = (@targets, @grep);
+    my @grep : shared = greplist(\@links);
+    {
+	lock (@targets);
+	@targets = (@targets, @grep);
+    }
 
     if ($verbose == 1)
     {
@@ -373,11 +381,16 @@ sub parseURL
 	    my $visited = 0;
 
 	    # Checking if already done
-	    foreach my $url_done (@crawled)
+	    # wainting lock...
 	    {
-		if ($link eq $url_done)
+		lock (@crawled);
+		# cond_wait(@crawled);
+		foreach my $url_done (@crawled)
 		{
-		    $visited = 1;
+		    if ($link eq $url_done)
+		    {
+			$visited = 1;
+		    }
 		}
 	    }
 
@@ -387,7 +400,7 @@ sub parseURL
 		# do not browse css/js/images/etc.
 		if (!($link =~ m/.*\.(gif|jpe?g|png|css|js|ico|swf|axd|jsp|pdf)$/i))
 		{
-		    crawl_rec($link, $_[1] + 1);
+		    crawl_rec($link, $_[1]);
 		}
 	    }
 	}
@@ -420,11 +433,11 @@ sub parse_thread
     
     if ($UGCONF{'NOTHREADS'} || $thread_count >= $UGCONF{'MAXTHREADS'})
     {
-	parseURL($_[0], $_[1]);
+	parseURL($_[0], $_[1] + 1);
     }
     else
     {
-	threads->create(\&parseURL, $_[0], $_[1]);
+	threads->create(\&parseURL, $_[0], int($_[1] + 1));
     }
 }
 
@@ -447,6 +460,7 @@ sub constructURL
 	# we keep it in our misc list but not anchor links
         if (! ($_[0] =~ m!^#.*!))
         {
+	    lock (@targets_misc);
             push (@targets_misc, $_[0]);
 	}
 
