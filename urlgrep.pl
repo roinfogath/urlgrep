@@ -102,6 +102,21 @@ finishing();
 sub tsktsk {
     print ("\n");
     print_comm ("Catching Ctrl-C!\n");
+
+    # terminating threads
+    if (!$UGCONF{'NOTHREADS'})
+    {
+        print_comm ("Killing threads... \n");
+
+        my @threads = threads->list();
+
+        foreach my $thr (@threads)
+        {
+            $thr->detach();
+            print "Thread ".$thr->tid()." killed.\n"
+        }
+    }
+
     finishing();
     exit 0;
 }
@@ -138,10 +153,8 @@ sub helpmessage
     print_comm ("	set the timeout when requesting a page (default=5s)\n");
     print_comm ("-c file, --cookie file\n", "bold");
     print_comm ("	specify your cookie file\n");
-    
     print_comm ("-n, --no-threads\n", "bold");
     print_comm ("       won't use threads\n");
-
     print_comm ("-v, --verbose\n", "bold");
     print_comm ("	verbose mode\n");
     print_comm ("-h, --help\n", "bold");
@@ -214,13 +227,11 @@ sub finishing
     # terminating threads
     if (!$UGCONF{'NOTHREADS'})
     {
-	print_comm ("Waiting threads to finish... \n");
-
 	my @threads = threads->list();
 
 	foreach my $thr (@threads)
 	{
-	    $thr->detach();
+	    $thr->join();
 	    print "Thread ".$thr->tid()." terminated.\n"
 	}
     }
@@ -376,21 +387,47 @@ sub parseURL
 		# do not browse css/js/images/etc.
 		if (!($link =~ m/.*\.(gif|jpe?g|png|css|js|ico|swf|axd|jsp|pdf)$/i))
 		{
-		    my $thread_count = threads->list();
-
-		    if ($UGCONF{'NOTHREADS'} || $thread_count >= $UGCONF{'MAXTHREADS'})
-		    {
-			parseURL($link, $_[1] + 1);
-		    }
-		    else
-		    {
-			threads->create(\&parseURL, $link, $_[1] + 1);
-		    }
+		    crawl_rec($link, $_[1] + 1);
 		}
 	    }
 	}
     }
 }
+
+
+sub crawl_rec
+{
+    # if we want to go through all the links (not only local to the website)
+    if ($all)
+    {
+	parse_thread($_[0], $_[1]);
+    }
+    else
+    {
+        # Calculating host of the link
+	my $link_host = find_hostname($_[0]);
+	
+        if ($link_host eq $host)
+        {
+	    parse_thread($_[0], $_[1]);
+        }
+    }
+}
+
+sub parse_thread
+{
+    my $thread_count = threads->list();
+    
+    if ($UGCONF{'NOTHREADS'} || $thread_count >= $UGCONF{'MAXTHREADS'})
+    {
+	parseURL($_[0], $_[1]);
+    }
+    else
+    {
+	threads->create(\&parseURL, $_[0], $_[1]);
+    }
+}
+
 
 sub constructURL
 {
@@ -427,26 +464,7 @@ sub constructURL
 	$complete_url = URI->new($_[0])->abs($_[1]);
     }
 
-    # if we want to go through all the links (not only local to the website)
-    if ($all)
-    {
-	return $complete_url;
-    }
-    else
-    {
-	# Calculating host of the link
-	my $link_host = find_hostname($complete_url);
-
-	if ($link_host eq $host)
-	{
-	    return $complete_url;
-	}
-	else
-	{
-	    # return empty string
-	    return "";
-	}
-    }
+    return $complete_url;
 
     #print ("0  " . $_[0]."\n");
     #print ("1  " .$_[1]."\n");
