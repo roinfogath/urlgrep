@@ -28,5 +28,5 @@ TODO list:
   * Colorize the results (like grep --color)
   * Stealth mode
   * HTML generation
-  * Parallelize HTTP requests using threads for faster results
+  * ~~Parallelize HTTP requests using threads for faster results~~ can be buggy for now (use --no-threads options)
   * Maybe an even more generic code and provide a simple crawler API, then copy our code in it (because the crawler could be useful in many other cases)
