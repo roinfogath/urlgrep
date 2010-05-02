@@ -1,4 +1,4 @@
-URLgrep v0.5.6
+URLgrep v0.5.7
 ##############
 
 Please visit http://code.google.com/p/urlgrep/
@@ -6,34 +6,26 @@ Please visit http://code.google.com/p/urlgrep/
 Below are the currently supported options:
 
 -u link, --url link
-target webpage's url
+	target webpage's url
 -d n, --depth n
-set the depth of the crawler (default=1)
+	set the depth of the crawler (default=1)
 -a, --all
-specify this option if you want to search in pages that link outside
+	specify this option if you want to search in pages that link outside
 -r exp, --regexp exp
-the regular expression you want to apply (see example below)
+	the regular expression you want to apply (see example below)
 -i, --ignore-case
-case insensitive search
+	case insensitive search
 -m, --invert-match
-invert the sense of matching
+	invert the sense of matching
 -o file, --output file
-will dump all matching URLs into the specified file
+	will dump all matching URLs into the specified file
 -t n, --timeout n
-set the timeout when requesting a page (default=5 seconds)
+	set the timeout when requesting a page (default=5 seconds)
 -c file, --cookie file
-specify your cookie file
+	specify your cookie file
+-n, --no-threads
+	won't use threads
 -v ,--verbose
-verbose mode
+	verbose mode
 -h, --help
-show the help and usage
-Examples
-
-./urlgrep.pl --url="http://www.epita.fr/" --regexp="\?" -d 1 -v
-This will search for any URL in the website www.epita.fr containing a '?'.
-
-./urlgrep.pl -u "http://www.epita.fr" -r "\.php" -d 2
-Using short options, this will search PHP pages in the website www.epita.fr.
-
-./urlgrep.pl -u "http://www.epita.fr" -d 1 -r "pHp" -i -v -o test.log
-Will dump the results in test.log.
+	show the help and usage
