@@ -11,7 +11,7 @@
 ==v1.0==
 
 TODO list:
-  * ~~Full HTTPS support (seems to be buggy in some cases)~~ look like it works
+  * ~~Full HTTPS support (seems to be buggy in some cases)~~ looks like it works
   * ~~Handle the `<base href="..." />` for link constructions~~
   * ~~Clean the code (refactoring)~~
   * ~~Should log external links as well~~
